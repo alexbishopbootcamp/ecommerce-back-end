@@ -1,30 +1,55 @@
 const router = require('express').Router();
 const { Product, Category, Tag, ProductTag } = require('../../models');
 
-// The `/api/products` endpoint
-
-// get all products
+// find all products
 router.get('/', (req, res) => {
-  // find all products
-  // be sure to include its associated Category and Tag data
+  Product.findAll({
+    include: [
+      {
+        model: Category,
+      },
+      {
+        model: Tag,
+        through: ProductTag,
+      }
+    ]
+  })
+    .then((products) => {
+      res.json(products);
+    })
+    .catch((err) => {
+      res.json(err);
+    });
 });
 
-// get one product
+// find a single product by its `id`
 router.get('/:id', (req, res) => {
-  // find a single product by its `id`
-  // be sure to include its associated Category and Tag data
+  Product.findOne({
+    where: {
+      id: req.params.id,
+    },
+    include: [
+      {
+        model: Category,
+      },
+      {
+        model: Tag,
+        through: ProductTag,
+      }
+    ]
+  })
+    .then((product) => {
+      res.json(product);
+    }
+    )
+    .catch((err) => {
+      res.json(err);
+    }
+    );
 });
 
 // create new product
 router.post('/', (req, res) => {
-  /* req.body should look like this...
-    {
-      product_name: "Basketball",
-      price: 200.00,
-      stock: 3,
-      tagIds: [1, 2, 3, 4]
-    }
-  */
   Product.create(req.body)
     .then((product) => {
       // if there's product tags, we need to create pairings to bulk create in the ProductTag model
@@ -92,8 +117,29 @@ router.put('/:id', (req, res) => {
     });
 });
 
+// delete one product by its `id` value
 router.delete('/:id', (req, res) => {
-  // delete one product by its `id` value
+  ProductTag.destroy({
+    where: {
+      product_id: req.params.id,
+    },
+  })
+    .then(() => {
+      Product.destroy({
+        where: {
+          id: req.params.id,
+        },
+      })
+        .then((product) => {
+          res.json(product);
+        })
+        .catch((err) => {
+          res.json(err);
+        });
+    })
+    .catch((err) => {
+      res.json(err);
+    });
 });
 
 module.exports = router;
